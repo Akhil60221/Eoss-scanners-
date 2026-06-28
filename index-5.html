@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0f1117" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>EOSS Scanner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.4.2/dist/quagga.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <style>
+/* EOSS Barcode Scanner — Retail Staff Tool */
+/* Mobile-first, optimized for Android Chrome on low-end devices */
+
+:root {
+  --bg: #0f1117;
+  --surface: #1a1d27;
+  --surface2: #22263a;
+  --border: #2e3350;
+
+  --offer-b1g1: #22c55e;
+  --offer-b1g1-bg: #052e16;
+  --offer-b1g1-border: #16a34a;
+
+  --offer-b1g2: #3b82f6;
+  --offer-b1g2-bg: #0c1a3d;
+  --offer-b1g2-border: #2563eb;
+
+  --offer-flat: #f97316;
+  --offer-flat-bg: #2c1008;
+  --offer-flat-border: #ea580c;
+
+  --offer-other: #ef4444;
+  --offer-other-bg: #2c0a0a;
+  --offer-other-border: #dc2626;
+
+  --offer-none: #6b7280;
+  --offer-none-bg: #111827;
+  --offer-none-border: #374151;
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #475569;
+
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-light: #1e1b4b;
+
+  --scan-btn: #6366f1;
+  --scan-btn-hover: #4f46e5;
+  --scan-btn-active: #3730a3;
+
+  --radius: 14px;
+  --radius-sm: 8px;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 80px;
+  overscroll-behavior: none;
+}
+
+/* ── Header ── */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-logo {
+  width: 36px;
+  height: 36px;
+  background: var(--accent);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+}
+
+.header-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--offer-none);
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.status-dot.ready {
+  background: var(--offer-b1g1);
+  box-shadow: 0 0 6px var(--offer-b1g1);
+}
+
+/* ── Upload Section ── */
+.upload-section {
+  margin: 16px 16px 0;
+  background: var(--surface);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  transition: border-color 0.2s;
+}
+
+.upload-section.has-data {
+  border-style: solid;
+  border-color: var(--offer-b1g1-border);
+  background: var(--offer-b1g1-bg);
+}
+
+.upload-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.upload-icon {
+  font-size: 22px;
+}
+
+.upload-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
+}
+
+.upload-info {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.upload-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.upload-btn:active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+#fileInput {
+  display: none;
+}
+
+.data-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--offer-b1g1-bg);
+  border: 1px solid var(--offer-b1g1-border);
+  color: var(--offer-b1g1);
+  border-radius: 20px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 10px;
+}
+
+/* ── Scan Section ── */
+.scan-section {
+  margin: 16px 16px 0;
+}
+
+/* Camera viewfinder */
+.camera-container {
+  position: relative;
+  background: #000;
+  border-radius: var(--radius);
+  overflow: hidden;
+  aspect-ratio: 4/3;
+  display: none;
+  border: 2px solid var(--accent);
+}
+
+.camera-container.active {
+  display: block;
+}
+
+#video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scan-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.scan-frame {
+  width: 65%;
+  aspect-ratio: 3/1.2;
+  position: relative;
+}
+
+.scan-frame::before,
+.scan-frame::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: #fff;
+  border-style: solid;
+  border-radius: 2px;
+}
+
+.scan-frame::before {
+  top: 0; left: 0;
+  border-width: 3px 0 0 3px;
+}
+
+.scan-frame::after {
+  bottom: 0; right: 0;
+  border-width: 0 3px 3px 0;
+}
+
+.scan-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: scanline 1.8s ease-in-out infinite;
+  border-radius: 2px;
+}
+
+@keyframes scanline {
+  0%, 100% { top: 8%; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  50% { top: 88%; }
+}
+
+.scan-label {
+  position: absolute;
+  bottom: 14px;
+  left: 0; right: 0;
+  text-align: center;
+  color: rgba(255,255,255,0.85);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+
+.scan-stop-btn {
+  position: absolute;
+  top: 10px; right: 10px;
+  background: rgba(0,0,0,0.65);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 10;
+}
+
+/* Scan button */
+.scan-btn {
+  width: 100%;
+  padding: 20px;
+  background: var(--scan-btn);
+  border: none;
+  border-radius: var(--radius);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 4px 24px rgba(99,102,241,0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.scan-btn:active {
+  transform: scale(0.97);
+  background: var(--scan-btn-active);
+}
+
+.scan-btn-icon {
+  font-size: 24px;
+}
+
+.scan-btn.scanning {
+  background: var(--scan-btn-active);
+}
+
+/* Manual entry */
+.manual-section {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.manual-input {
+  flex: 1;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 16px;
+  font-family: var(--font-mono);
+  letter-spacing: 1px;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+.manual-input:focus {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+
+.manual-input::placeholder {
+  color: var(--text-muted);
+  font-family: var(--font);
+  letter-spacing: 0;
+}
+
+.manual-submit {
+  padding: 14px 18px;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.manual-submit:active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+/* ── Offer Result Card ── */
+.result-section {
+  margin: 16px 16px 0;
+}
+
+.result-card {
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  border: 2px solid var(--offer-none-border);
+  background: var(--offer-none-bg);
+  text-align: center;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.result-card.b1g1 {
+  border-color: var(--offer-b1g1-border);
+  background: var(--offer-b1g1-bg);
+}
+
+.result-card.b1g2 {
+  border-color: var(--offer-b1g2-border);
+  background: var(--offer-b1g2-bg);
+}
+
+.result-card.flat {
+  border-color: var(--offer-flat-border);
+  background: var(--offer-flat-bg);
+}
+
+.result-card.other {
+  border-color: var(--offer-other-border);
+  background: var(--offer-other-bg);
+}
+
+.result-card.error {
+  border-color: var(--offer-other-border);
+  background: var(--offer-other-bg);
+}
+
+.result-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--text-muted);
+}
+
+.result-offer {
+  font-size: 52px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  line-height: 1;
+  color: var(--offer-none);
+  transition: color 0.25s;
+}
+
+.result-card.b1g1 .result-offer { color: var(--offer-b1g1); }
+.result-card.b1g2 .result-offer { color: var(--offer-b1g2); }
+.result-card.flat .result-offer { color: var(--offer-flat); }
+.result-card.other .result-offer, 
+.result-card.error .result-offer { color: var(--offer-other); }
+
+.result-barcode {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-secondary);
+  letter-spacing: 1.5px;
+}
+
+.result-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Flash animation on new scan */
+@keyframes flashCard {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.025); }
+  100% { transform: scale(1); }
+}
+
+.result-card.flash {
+  animation: flashCard 0.3s ease;
+}
+
+/* ── History Section ── */
+.history-section {
+  margin: 20px 16px 0;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.history-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary);
+}
+
+.history-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.history-btn {
+  padding: 5px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.history-btn:active {
+  background: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.history-btn.danger:active {
+  background: var(--offer-other-bg);
+  border-color: var(--offer-other-border);
+  color: var(--offer-other);
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.history-empty {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--text-muted);
+  font-size: 13px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: opacity 0.2s;
+}
+
+.history-offer-badge {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  min-width: 70px;
+  text-align: center;
+}
+
+.badge-b1g1 { background: var(--offer-b1g1-bg); color: var(--offer-b1g1); border: 1px solid var(--offer-b1g1-border); }
+.badge-b1g2 { background: var(--offer-b1g2-bg); color: var(--offer-b1g2); border: 1px solid var(--offer-b1g2-border); }
+.badge-flat { background: var(--offer-flat-bg); color: var(--offer-flat); border: 1px solid var(--offer-flat-border); }
+.badge-other, .badge-error { background: var(--offer-other-bg); color: var(--offer-other); border: 1px solid var(--offer-other-border); }
+
+.history-detail {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-barcode {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 12px 20px;
+  border-radius: 30px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 999;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ── Voice toggle ── */
+.voice-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin: 12px 16px 0;
+  cursor: pointer;
+}
+
+.toggle-switch {
+  width: 38px;
+  height: 22px;
+  background: var(--border);
+  border-radius: 11px;
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle-switch.on {
+  background: var(--accent);
+}
+
+.toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: left 0.2s;
+}
+
+.toggle-switch.on .toggle-knob {
+  left: 19px;
+}
+
+.toggle-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  flex: 1;
+}
+
+.toggle-emoji {
+  font-size: 16px;
+}
+
+/* ── Loading Spinner ── */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Utilities ── */
+.hidden { display: none !important; }
+
+/* ── Responsiveness for larger phones / tablets ── */
+@media (min-width: 420px) {
+  .result-offer { font-size: 64px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-line { animation: none; }
+  .result-card.flash { animation: none; }
+}
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="header-brand">
+      <div class="header-logo">🏷️</div>
+      <div>
+        <div class="header-title">EOSS Scanner</div>
+        <div class="header-sub">Stock Segregation Tool</div>
+      </div>
+    </div>
+    <div class="header-status">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">No data</span>
+    </div>
+  </header>
+
+  <section class="upload-section" id="uploadSection">
+    <div class="upload-header">
+      <span class="upload-icon">📋</span>
+      <div>
+        <div class="upload-label">Barcode Master</div>
+        <div class="upload-info">Upload CSV or Excel with barcode & offer columns</div>
+      </div>
+    </div>
+    <button class="upload-btn" id="uploadBtn">📂 Choose CSV / Excel file</button>
+    <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.txt" />
+    <div class="data-badge hidden" id="dataBadge"></div>
+  </section>
+
+  <section class="scan-section">
+    <div class="camera-container" id="cameraContainer">
+      <video id="video" playsinline muted></video>
+      <div class="scan-overlay">
+        <div class="scan-frame"><div class="scan-line"></div></div>
+      </div>
+      <div class="scan-label">Point camera at barcode</div>
+      <button class="scan-stop-btn" id="stopCameraBtn">✕ Close</button>
+    </div>
+    <button class="scan-btn" id="scanBtn">
+      <span class="scan-btn-icon">📷</span>
+      <span id="scanBtnText">Scan Barcode</span>
+    </button>
+    <div class="manual-section">
+      <input type="text" id="manualInput" class="manual-input" placeholder="Enter barcode manually"
+        inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="50" />
+      <button class="manual-submit" id="manualSubmit">Go →</button>
+    </div>
+  </section>
+
+  <div class="voice-toggle" id="voiceToggle" role="switch" aria-checked="false">
+    <span class="toggle-emoji">🔊</span>
+    <span class="toggle-label">Voice Announcement</span>
+    <div class="toggle-switch" id="toggleSwitch"><div class="toggle-knob"></div></div>
+  </div>
+
+  <section class="result-section">
+    <div class="result-card" id="resultCard" role="status" aria-live="polite">
+      <div class="result-eyebrow" id="resultEyebrow">AWAITING SCAN</div>
+      <div class="result-offer" id="resultOffer">—</div>
+      <div class="result-barcode" id="resultBarcode">scan a product to see its offer</div>
+      <div class="result-time" id="resultTime"></div>
+    </div>
+  </section>
+
+  <section class="history-section">
+    <div class="history-header">
+      <span class="history-title">Session History</span>
+      <div class="history-actions">
+        <button class="history-btn" id="exportBtn">Export</button>
+        <button class="history-btn danger" id="clearBtn">Clear</button>
+      </div>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty">No scans yet this session</div>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" role="alert" aria-live="assertive"></div>
+
+  <script src="core.js"></script>
+</body>
+</html>
