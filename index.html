@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+  <meta name="theme-color" content="#0f1117"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <title>VM Scanner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet"/>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+:root{
+  --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3350;
+  --green:#22c55e;--green-bg:#052e16;--green-border:#16a34a;
+  --blue:#3b82f6;--blue-bg:#0c1a3d;--blue-border:#2563eb;
+  --orange:#f97316;--orange-bg:#2c1008;--orange-border:#ea580c;
+  --red:#ef4444;--red-bg:#2c0a0a;--red-border:#dc2626;
+  --purple:#a855f7;--purple-bg:#1a0a2e;--purple-border:#9333ea;
+  --gray:#6b7280;--gray-bg:#111827;--gray-border:#374151;
+  --text:#f1f5f9;--text2:#94a3b8;--text3:#475569;
+  --accent:#6366f1;--accent-dark:#4f46e5;--accent-light:#1e1b4b;
+  --r:14px;--r2:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);
+  min-height:100dvh;max-width:480px;margin:0 auto;padding:0 0 60px}
+.header{position:sticky;top:0;z-index:100;background:var(--surface);
+  border-bottom:1px solid var(--border);padding:14px 16px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px}
+.header-brand{display:flex;align-items:center;gap:10px}
+.logo{width:36px;height:36px;background:var(--accent);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.title{font-size:17px;font-weight:700}
+.subtitle{font-size:11px;color:var(--text2);font-weight:500;letter-spacing:0.5px;text-transform:uppercase}
+.status-pill{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);
+  background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 10px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--gray);flex-shrink:0;transition:background 0.3s}
+.dot.ready{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot.loading{background:#f59e0b;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+.upload-section{margin:14px 16px 0;background:var(--surface);
+  border:1.5px dashed var(--border);border-radius:var(--r);padding:16px}
+.upload-section.has-data{border-style:solid;border-color:var(--green-border);background:var(--green-bg)}
+.upload-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.upload-label{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2)}
+.upload-info{font-size:12px;color:var(--text3);margin-top:2px}
+.upload-btn{width:100%;padding:12px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--r2);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.upload-btn:active{background:var(--accent-light);border-color:var(--accent)}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--green-bg);
+  border:1px solid var(--green-border);color:var(--green);border-radius:20px;
+  padding:4px 10px;font-size:12px;font-weight:700;margin-top:10px}
+.progress-bar{width:100%;height:6px;background:var(--border);border-radius:3px;margin-top:10px;display:none}
+.progress-fill{height:100%;background:var(--accent);border-radius:3px;width:0%;transition:width 0.3s}
+.progress-text{font-size:11px;color:var(--text3);margin-top:4px;text-align:center;display:none}
+
+.scan-section{margin:14px 16px 0}
+#reader{display:none;margin-bottom:12px;border-radius:var(--r);overflow:hidden;border:2px solid var(--accent)}
+#reader img{display:none!important}
+#reader__dashboard{display:none!important}
+.scan-btn{width:100%;padding:20px;background:var(--accent);border:none;border-radius:var(--r);
+  color:#fff;font-size:18px;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  box-shadow:0 4px 24px rgba(99,102,241,0.35);transition:background 0.15s,transform 0.1s}
+.scan-btn:active{transform:scale(0.97);background:var(--accent-dark)}
+.scan-btn.scanning{background:var(--accent-dark)}
+.manual-row{margin-top:12px;display:flex;gap:8px}
+.manual-input{flex:1;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--r2);color:var(--text);font-size:16px;font-family:'JetBrains Mono',monospace;
+  letter-spacing:1px;outline:none;-webkit-appearance:none}
+.manual-input:focus{border-color:var(--accent);background:var(--accent-light)}
+.manual-input::placeholder{color:var(--text3);font-family:'Inter',sans-serif;letter-spacing:0}
+.go-btn{padding:14px 18px;background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:var(--r2);color:var(--text);font-size:14px;font-weight:700;cursor:pointer}
+.go-btn:active{background:var(--accent-light);border-color:var(--accent)}
+
+.voice-row{display:flex;align-items:center;gap:8px;padding:10px 14px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);
+  margin:12px 16px 0;cursor:pointer}
+.toggle{width:38px;height:22px;background:var(--border);border-radius:11px;
+  position:relative;transition:background 0.2s;flex-shrink:0}
+.toggle.on{background:var(--accent)}
+.knob{position:absolute;top:3px;left:3px;width:16px;height:16px;
+  background:#fff;border-radius:50%;transition:left 0.2s}
+.toggle.on .knob{left:19px}
+.voice-label{font-size:13px;font-weight:600;color:var(--text2);flex:1}
+
+.result-section{margin:14px 16px 0}
+.result-card{border-radius:var(--r);padding:24px 20px;border:2px solid var(--gray-border);
+  background:var(--gray-bg);text-align:center;min-height:160px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.result-card.c-green{border-color:var(--green-border);background:var(--green-bg)}
+.result-card.c-blue{border-color:var(--blue-border);background:var(--blue-bg)}
+.result-card.c-orange{border-color:var(--orange-border);background:var(--orange-bg)}
+.result-card.c-purple{border-color:var(--purple-border);background:var(--purple-bg)}
+.result-card.c-red{border-color:var(--red-border);background:var(--red-bg)}
+.eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3)}
+.big-value{font-size:52px;font-weight:900;letter-spacing:-2px;line-height:1;color:var(--gray)}
+.result-card.c-green .big-value{color:var(--green)}
+.result-card.c-blue .big-value{color:var(--blue)}
+.result-card.c-orange .big-value{color:var(--orange)}
+.result-card.c-purple .big-value{color:var(--purple)}
+.result-card.c-red .big-value{color:var(--red)}
+.bc-text{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text2);letter-spacing:1.5px}
+.scan-time{font-size:11px;color:var(--text3);margin-top:4px}
+@keyframes flash{0%{transform:scale(1)}30%{transform:scale(1.025)}100%{transform:scale(1)}}
+.result-card.flash{animation:flash 0.3s ease}
+
+.history-section{margin:18px 16px 0}
+.history-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.history-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--text2)}
+.hbtn{padding:5px 12px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:20px;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer;margin-left:6px}
+.hbtn:active{background:var(--accent-light);border-color:var(--accent);color:var(--text)}
+.history-empty{text-align:center;padding:28px 16px;color:var(--text3);font-size:13px;
+  background:var(--surface);border-radius:var(--r2);border:1px solid var(--border)}
+.history-item{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);margin-bottom:6px}
+.val-badge{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:800;
+  white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.v-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.v-blue{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.v-orange{background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange-border)}
+.v-purple{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+.v-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.h-bc{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--text);font-weight:600}
+.h-time{font-size:11px;color:var(--text3);margin-top:2px}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:12px 20px;border-radius:30px;font-size:14px;font-weight:600;z-index:999;
+  transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);white-space:nowrap;
+  pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);
+  border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(min-width:420px){.big-value{font-size:64px}}
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-brand">
+    <div class="logo">🏷️</div>
+    <div>
+      <div class="title">VM Scanner</div>
+      <div class="subtitle">Retail Staff Tool</div>
+    </div>
+  </div>
+  <div class="status-pill">
+    <span class="dot loading" id="statusDot"></span>
+    <span id="statusText">Starting…</span>
+  </div>
+</header>
+
+<section class="upload-section" id="uploadSection">
+  <div class="upload-header">
+    <span style="font-size:22px">📋</span>
+    <div>
+      <div class="upload-label">Data File</div>
+      <div class="upload-info">Upload once — app remembers permanently</div>
+    </div>
+  </div>
+  <button class="upload-btn" id="uploadBtn">📂 Choose file (CSV or Excel)</button>
+  <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.txt" style="display:none"/>
+  <div id="dataBadge" style="display:none" class="badge"></div>
+  <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText"></div>
+</section>
+
+<section class="scan-section">
+  <div id="reader"></div>
+  <button class="scan-btn" id="scanBtn">
+    <span style="font-size:24px">📷</span>
+    <span id="scanBtnText">Scan Barcode</span>
+  </button>
+  <div class="manual-row">
+    <input type="text" id="manualInput" class="manual-input" placeholder="Enter barcode manually"
+      inputmode="text" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="50"/>
+    <button class="go-btn" id="manualSubmit">Go →</button>
+  </div>
+</section>
+
+<div class="voice-row" id="voiceToggle">
+  <span>🔊</span>
+  <span class="voice-label">Voice Announcement</span>
+  <div class="toggle" id="toggleSwitch"><div class="knob"></div></div>
+</div>
+
+<section class="result-section">
+  <div class="result-card" id="resultCard">
+    <div class="eyebrow" id="resultEyebrow">AWAITING SCAN</div>
+    <div class="big-value" id="resultValue">—</div>
+    <div class="bc-text" id="resultBarcode">scan a product to see its value</div>
+    <div class="scan-time" id="resultTime"></div>
+  </div>
+</section>
+
+<section class="history-section">
+  <div class="history-header">
+    <span class="history-title">Session History</span>
+    <div>
+      <button class="hbtn" id="exportBtn">Export</button>
+      <button class="hbtn" id="clearBtn">Clear</button>
+    </div>
+  </div>
+  <div id="historyList"><div class="history-empty">No scans yet this session</div></div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ── IndexedDB ─────────────────────────────────────────────────
+const DB_NAME='VMScanner', DB_VER=2, STORE='barcodes', META='meta';
+
+function openDB(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open(DB_NAME,DB_VER);
+    req.onupgradeneeded=e=>{
+      const db=e.target.result;
+      if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE);
+      if(!db.objectStoreNames.contains(META))  db.createObjectStore(META);
+    };
+    req.onsuccess=e=>res(e.target.result);
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+
+function dbGet(db,store,key){
+  return new Promise(res=>{
+    const req=db.transaction(store,'readonly').objectStore(store).get(key);
+    req.onsuccess=()=>res(req.result??null);
+    req.onerror=()=>res(null);
+  });
+}
+
+function dbCount(db){
+  return new Promise(res=>{
+    const req=db.transaction(STORE,'readonly').objectStore(STORE).count();
+    req.onsuccess=()=>res(req.result);
+    req.onerror=()=>res(0);
+  });
+}
+
+// Save pairs in chunks — shows progress
+async function saveChunked(db, pairs, onProgress) {
+  // Clear existing data first
+  await new Promise((res,rej)=>{
+    const tx=db.transaction([STORE,META],'readwrite');
+    tx.objectStore(STORE).clear();
+    tx.oncomplete=res; tx.onerror=rej;
+  });
+
+  const CHUNK = 2000;
+  const total = pairs.length;
+
+  for (let i=0; i<total; i+=CHUNK) {
+    const chunk = pairs.slice(i, i+CHUNK);
+    await new Promise((res,rej)=>{
+      const tx=db.transaction(STORE,'readwrite');
+      const store=tx.objectStore(STORE);
+      for (const [k,v] of chunk) store.put(v,k);
+      tx.oncomplete=res; tx.onerror=rej;
+    });
+    onProgress(Math.min(i+CHUNK, total), total);
+    // Yield to browser so UI doesn't freeze
+    await new Promise(r=>setTimeout(r,0));
+  }
+
+  // Save meta
+  await new Promise((res,rej)=>{
+    const tx=db.transaction(META,'readwrite');
+    tx.objectStore(META).put({
+      count: Math.round(total/2),
+      date: new Date().toLocaleDateString('en-IN'),
+    },'info');
+    tx.oncomplete=res; tx.onerror=rej;
+  });
+}
+
+// ── State ─────────────────────────────────────────────────────
+const state={db:null,ready:false,history:[],scanning:false,qr:null,voice:false,lastCode:null,lastTime:0};
+const $=id=>document.getElementById(id);
+const dom={
+  dot:$('statusDot'),statusText:$('statusText'),
+  uploadSection:$('uploadSection'),uploadBtn:$('uploadBtn'),
+  fileInput:$('fileInput'),dataBadge:$('dataBadge'),
+  progressBar:$('progressBar'),progressFill:$('progressFill'),progressText:$('progressText'),
+  scanBtn:$('scanBtn'),scanBtnText:$('scanBtnText'),reader:$('reader'),
+  manualInput:$('manualInput'),manualSubmit:$('manualSubmit'),
+  resultCard:$('resultCard'),resultEyebrow:$('resultEyebrow'),
+  resultValue:$('resultValue'),resultBarcode:$('resultBarcode'),resultTime:$('resultTime'),
+  historyList:$('historyList'),exportBtn:$('exportBtn'),clearBtn:$('clearBtn'),
+  toast:$('toast'),voiceToggle:$('voiceToggle'),toggleSwitch:$('toggleSwitch'),
+};
+
+// ── Colours ───────────────────────────────────────────────────
+const CC=new Map(), COLS=['c-green','c-blue','c-orange','c-purple'];
+function getColor(v){
+  const u=(v||'').toUpperCase().trim();
+  if(u==='NOT FOUND'||u==='NO DATA') return 'c-red';
+  if(CC.has(u)) return CC.get(u);
+  let c;
+  if(u==='B1G1') c='c-green';
+  else if(u==='B1G2') c='c-blue';
+  else if(u.startsWith('FLAT')) c='c-orange';
+  else { let h=0; for(let i=0;i<u.length;i++) h=(h*31+u.charCodeAt(i))&0xffff; c=COLS[h%4]; }
+  CC.set(u,c); return c;
+}
+function bc(c){return c.replace('c-','v-');}
+
+// ── Parse CSV — returns pairs array ──────────────────────────
+function parseCSV(text){
+  const lines=text.replace(/^\uFEFF/,'').trim().split(/\r?\n/);
+  const pairs=[]; let skipped=false;
+  for(const line of lines){
+    if(!line.trim()) continue;
+    const parts=line.split(',');
+    if(parts.length<2) continue;
+    const k=parts[0].replace(/^["'\s]+|["'\s]+$/g,'').trim();
+    const v=parts[1].replace(/^["'\s]+|["'\s]+$/g,'').trim();
+    if(!k||!v) continue;
+    if(!skipped&&isNaN(k)&&/^[A-Z\s_\-]+$/i.test(k)&&k.length<30){skipped=true;continue;}
+    pairs.push([k,v]);
+    if(k!==k.toUpperCase()) pairs.push([k.toUpperCase(),v]);
+  }
+  return pairs;
+}
+
+// ── Parse Excel using raw XML — bypasses SheetJS memory limit ─
+async function parseExcelXML(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=async e=>{
+      try{
+        // Load as zip
+        const arrayBuffer=e.target.result;
+        const JSZip=await loadJSZip();
+        const zip=await JSZip.loadAsync(arrayBuffer);
+
+        // Get shared strings
+        const ssXML=await zip.file('xl/sharedStrings.xml').async('string');
+        const strings=parseSharedStrings(ssXML);
+
+        // Find Sheet1
+        const wbXML=await zip.file('xl/workbook.xml').async('string');
+        const sheet1file=getSheet1File(wbXML,zip);
+        const sheetXML=await zip.file(sheet1file).async('string');
+
+        // Parse rows
+        const pairs=parseSheetXML(sheetXML,strings);
+        resolve(pairs);
+      }catch(err){reject(err);}
+    };
+    reader.onerror=reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function loadJSZip(){
+  return new Promise((res,rej)=>{
+    if(window.JSZip){res(window.JSZip);return;}
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    s.onload=()=>res(window.JSZip);
+    s.onerror=rej;
+    document.head.appendChild(s);
+  });
+}
+
+function parseSharedStrings(xml){
+  const strings=[];
+  const re=/<si>.*?<\/si>/gs;
+  let m;
+  while((m=re.exec(xml))!==null){
+    const text=m[0].replace(/<[^>]+>/g,'').replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+    strings.push(text.trim());
+  }
+  return strings;
+}
+
+function getSheet1File(wbXML,zip){
+  // Find sheet named Sheet1 or first sheet
+  const sheetRe=/<sheet[^>]+name="([^"]*)"[^>]+r:id="([^"]*)"/g;
+  let m, firstId=null, sheet1Id=null;
+  while((m=sheetRe.exec(wbXML))!==null){
+    if(!firstId) firstId=m[2];
+    if(m[1]==='Sheet1'){sheet1Id=m[2];break;}
+  }
+  const useId=sheet1Id||firstId;
+
+  // Get relationship
+  const relsXML=zip.files['xl/_rels/workbook.xml.rels']?zip.files['xl/_rels/workbook.xml.rels']:null;
+  if(!relsXML) return 'xl/worksheets/sheet1.xml';
+
+  // Just return sheet1.xml directly — most common case
+  return 'xl/worksheets/sheet1.xml';
+}
+
+function parseSheetXML(xml,strings){
+  const pairs=[];
+  let skipped=false;
+
+  // Match each row
+  const rowRe=/<row[^>]*>(.*?)<\/row>/gs;
+  const cellRe=/<c r="([A-Z]+)\d+"[^>]*(?:t="([^"]*)")?[^>]*>(?:<v>(.*?)<\/v>)?/g;
+
+  let rowMatch;
+  while((rowMatch=rowRe.exec(xml))!==null){
+    const rowContent=rowMatch[1];
+    const cells={};
+    let cMatch;
+    cellRe.lastIndex=0;
+    while((cMatch=cellRe.exec(rowContent))!==null){
+      const col=cMatch[1], type=cMatch[2]||'', raw=cMatch[3]||'';
+      let val='';
+      if(type==='s') val=strings[parseInt(raw)]||''; // shared string
+      else if(type==='str') val=raw;
+      else val=raw;
+      cells[col]=val.trim();
+    }
+
+    const k=(cells['A']||'').trim();
+    const v=(cells['B']||'').trim();
+    if(!k||!v) continue;
+
+    // Skip header
+    if(!skipped&&isNaN(k)&&/^[A-Z\s_\-]+$/i.test(k)&&k.length<30){skipped=true;continue;}
+
+    pairs.push([k,v]);
+    if(k!==k.toUpperCase()) pairs.push([k.toUpperCase(),v]);
+  }
+  return pairs;
+}
+
+// ── File upload ───────────────────────────────────────────────
+dom.uploadBtn.addEventListener('click',()=>dom.fileInput.click());
+dom.fileInput.addEventListener('change',async e=>{
+  const file=e.target.files[0];
+  if(!file) return;
+  dom.uploadBtn.innerHTML='<span class="spinner"></span> Reading…';
+  dom.uploadBtn.disabled=true;
+  dom.progressBar.style.display='block';
+  dom.progressText.style.display='block';
+  dom.progressText.textContent='Reading file…';
+  setStatus('loading','Loading…');
+
+  try{
+    let pairs;
+    dom.progressText.textContent='📖 Reading file…';
+
+    if(/\.(xlsx|xls)$/i.test(file.name)){
+      pairs=await parseExcelXML(file);
+    } else {
+      const text=await file.text();
+      pairs=parseCSV(text);
+    }
+
+    if(!pairs.length){showToast('⚠️ No data found');return;}
+
+    dom.progressText.textContent=`💾 Saving ${Math.round(pairs.length/2).toLocaleString()} entries…`;
+
+    await saveChunked(state.db, pairs, (done,total)=>{
+      const pct=Math.round(done/total*100);
+      dom.progressFill.style.width=pct+'%';
+      dom.progressText.textContent=`💾 Saving… ${pct}%`;
+    });
+
+    const count=Math.round(pairs.length/2);
+    state.ready=true;
+    dom.dataBadge.textContent=`✅ ${count.toLocaleString()} entries saved permanently`;
+    dom.dataBadge.style.display='inline-flex';
+    dom.uploadSection.classList.add('has-data');
+    dom.progressBar.style.display='none';
+    dom.progressText.style.display='none';
+    dom.progressFill.style.width='0%';
+    setStatus('ready','Ready to scan');
+    showToast(`✅ ${count.toLocaleString()} entries ready!`);
+
+  }catch(err){
+    showToast('❌ Error: '+err.message);
+    console.error(err);
+    setStatus('','Error');
+    dom.progressBar.style.display='none';
+    dom.progressText.style.display='none';
+  }finally{
+    dom.uploadBtn.innerHTML='📂 Upload new file';
+    dom.uploadBtn.disabled=false;
+    dom.fileInput.value='';
+  }
+});
+
+// ── Process barcode ───────────────────────────────────────────
+async function processBarcode(barcode){
+  const b=barcode.trim();
+  if(!b) return;
+  const now=Date.now();
+  if(b===state.lastCode&&now-state.lastTime<2500) return;
+  state.lastCode=b; state.lastTime=now;
+  navigator.vibrate&&navigator.vibrate([60]);
+
+  const time=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+  if(!state.ready){showResult(b,'UPLOAD FILE',time,true);showToast('⚠️ Upload a data file first');return;}
+
+  let val=await dbGet(state.db,STORE,b);
+  if(!val) val=await dbGet(state.db,STORE,b.toUpperCase());
+
+  if(val){showResult(b,val,time);addHistory(b,val,time);if(state.voice)speak(val);}
+  else{showResult(b,'NOT FOUND',time,true);addHistory(b,'NOT FOUND',time);if(state.voice)speak('Not found');}
+}
+
+// ── Display ───────────────────────────────────────────────────
+function showResult(b,val,time,isError=false){
+  const color=isError?'c-red':getColor(val);
+  dom.resultCard.className=`result-card ${color}`;
+  dom.resultEyebrow.textContent=isError?'SCAN RESULT':'RESULT';
+  dom.resultValue.textContent=val;
+  dom.resultBarcode.textContent=b;
+  dom.resultTime.textContent=`Scanned at ${time}`;
+  requestAnimationFrame(()=>{
+    dom.resultCard.classList.add('flash');
+    dom.resultCard.addEventListener('animationend',()=>dom.resultCard.classList.remove('flash'),{once:true});
+  });
+  dom.resultCard.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+// ── History ───────────────────────────────────────────────────
+function addHistory(b,val,time){state.history.unshift({b,val,time});renderHistory();}
+function renderHistory(){
+  if(!state.history.length){dom.historyList.innerHTML='<div class="history-empty">No scans yet this session</div>';return;}
+  dom.historyList.innerHTML=state.history.map(h=>{
+    const c=getColor(h.val);
+    return `<div class="history-item"><span class="val-badge ${bc(c)}">${h.val}</span>
+    <div><div class="h-bc">${h.b}</div><div class="h-time">${h.time}</div></div></div>`;
+  }).join('');
+}
+dom.clearBtn.addEventListener('click',()=>{state.history=[];state.lastCode=null;renderHistory();showToast('🗑️ Cleared');});
+dom.exportBtn.addEventListener('click',()=>{
+  if(!state.history.length){showToast('No scans to export');return;}
+  const rows=['Barcode,Value,Time',...state.history.map(h=>`${h.b},${h.val},${h.time}`)];
+  const a=Object.assign(document.createElement('a'),{
+    href:URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'})),
+    download:`scan_${new Date().toISOString().slice(0,10)}.csv`
+  });a.click();showToast('📥 Exported');
+});
+
+// ── Camera ────────────────────────────────────────────────────
+dom.scanBtn.addEventListener('click',()=>state.scanning?stopCamera():startCamera());
+async function startCamera(){
+  dom.reader.style.display='block';
+  dom.scanBtn.classList.add('scanning');
+  dom.scanBtnText.textContent='Stop Camera';
+  state.scanning=true;
+  state.qr=new Html5Qrcode('reader');
+  try{
+    await state.qr.start(
+      {facingMode:'environment'},
+      {fps:15,qrbox:{width:280,height:120},aspectRatio:1.5,
+       formatsToSupport:[
+         Html5QrcodeSupportedFormats.CODE_128,Html5QrcodeSupportedFormats.CODE_39,
+         Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,
+         Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E,
+         Html5QrcodeSupportedFormats.QR_CODE,Html5QrcodeSupportedFormats.DATA_MATRIX,
+       ],
+       experimentalFeatures:{useBarCodeDetectorIfSupported:true}},
+      decoded=>processBarcode(decoded),()=>{}
+    );
+  }catch(err){showToast('📷 Camera error — use manual entry');await stopCamera();}
+}
+async function stopCamera(){
+  try{if(state.qr)await state.qr.stop();}catch(e){}
+  state.qr=null;dom.reader.style.display='none';
+  dom.scanBtn.classList.remove('scanning');
+  dom.scanBtnText.textContent='Scan Barcode';state.scanning=false;
+}
+
+// ── Manual ────────────────────────────────────────────────────
+dom.manualSubmit.addEventListener('click',()=>{processBarcode(dom.manualInput.value);dom.manualInput.value='';});
+dom.manualInput.addEventListener('keydown',e=>{if(e.key==='Enter'){processBarcode(dom.manualInput.value);dom.manualInput.value='';}});
+
+// ── Voice ─────────────────────────────────────────────────────
+dom.voiceToggle.addEventListener('click',()=>{
+  state.voice=!state.voice;
+  dom.toggleSwitch.classList.toggle('on',state.voice);
+  showToast(state.voice?'🔊 Voice on':'🔇 Voice off');
+});
+function speak(text){
+  if(!window.speechSynthesis)return;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(Object.assign(new SpeechSynthesisUtterance(text),{rate:0.95,volume:1}));
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function setStatus(type,text){
+  dom.dot.className='dot'+(type==='ready'?' ready':type==='loading'?' loading':'');
+  dom.statusText.textContent=text;
+}
+let toastT;
+function showToast(msg){
+  dom.toast.textContent=msg;dom.toast.classList.add('show');
+  clearTimeout(toastT);toastT=setTimeout(()=>dom.toast.classList.remove('show'),3000);
+}
+
+// ── Boot ──────────────────────────────────────────────────────
+(async()=>{
+  try{
+    state.db=await openDB();
+    const meta=await dbGet(state.db,META,'info');
+    const count=await dbCount(state.db);
+    if(meta&&count>0){
+      state.ready=true;
+      dom.dataBadge.textContent=`✅ ${meta.count.toLocaleString()} entries · ${meta.date}`;
+      dom.dataBadge.style.display='inline-flex';
+      dom.uploadSection.classList.add('has-data');
+      dom.uploadBtn.innerHTML='📂 Upload new file';
+      setStatus('ready','Ready to scan');
+      showToast('✅ Ready to scan!');
+    } else {
+      setStatus('','Upload file to start');
+      showToast('📂 Upload your data file once to start');
+    }
+  }catch(err){
+    console.error(err);
+    setStatus('','Storage error');
+  }
+  renderHistory();
+})();
+</script>
+</body>
+</html>
